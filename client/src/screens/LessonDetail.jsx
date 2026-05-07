@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import KeyboardDiagram from '../components/KeyboardDiagram';
-import { saveUser, awardBadge, checkAndAwardBadges } from '../userStore';
+import { saveUser, awardBadge, checkAndAwardBadges, ALL_BADGES } from '../userStore';
 
 function generateDrillWords(keys) {
   const lower = keys.map(k => k.toLowerCase()).filter(k => k.length === 1 && /[a-z;']/.test(k));
@@ -62,6 +62,7 @@ export default function LessonDetail({ lesson, user, setUser, onBack }) {
   const timerRef = useRef(null);
   const inputRef = useRef(null);
   const cpInputRef = useRef(null);
+  const cpTypedRef = useRef('');
 
   useEffect(() => {
     if (phase === 'drill' && !guidedMode && inputRef.current) inputRef.current.focus();
@@ -111,7 +112,7 @@ export default function LessonDetail({ lesson, user, setUser, onBack }) {
         setCpTimeLeft(rem);
         if (rem <= 0) {
           clearInterval(timerRef.current);
-          finishCheckpoint(cpTyped, 60000);
+          finishCheckpoint(cpTypedRef.current, 60000);
         }
       }, 100);
       return () => clearInterval(timerRef.current);
@@ -183,6 +184,7 @@ export default function LessonDetail({ lesson, user, setUser, onBack }) {
       setCpRunning(true);
     }
     if (val.length <= cpPassage.length) {
+      cpTypedRef.current = val;
       setCpTyped(val);
       if (val.length === cpPassage.length) {
         const elapsed = cpStartTime ? Date.now() - cpStartTime : 60000;
@@ -471,24 +473,27 @@ export default function LessonDetail({ lesson, user, setUser, onBack }) {
               <span className="label">Accuracy</span>
             </div>
           </div>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10,
-            background: 'rgba(255,209,102,0.12)',
-            border: '1px solid rgba(255,209,102,0.3)',
-            borderRadius: 10,
-            padding: '12px 20px',
-            marginBottom: 28,
-          }}>
-            <span style={{ fontSize: 24 }}>🏅</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#ffd166' }}>Badge Earned!</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-                Check your profile to see it
+          {(() => {
+            const badge = ALL_BADGES.find(b => b.id === lesson.badge);
+            return badge ? (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 12,
+                background: 'rgba(255,209,102,0.12)',
+                border: '1px solid rgba(255,209,102,0.3)',
+                borderRadius: 10,
+                padding: '12px 20px',
+                marginBottom: 28,
+              }}>
+                <span style={{ fontSize: 28 }}>{badge.icon}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#ffd166' }}>Badge Unlocked: {badge.name}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{badge.desc}</div>
+                </div>
               </div>
-            </div>
-          </div>
+            ) : null;
+          })()}
           <br />
           <button className="btn btn-primary" onClick={onBack}>
             Back to Lessons

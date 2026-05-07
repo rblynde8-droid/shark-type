@@ -1,5 +1,5 @@
 import BadgeGrid from '../components/BadgeGrid';
-import { saveUser } from '../userStore';
+import { saveUser, clearUser, ALL_BADGES } from '../userStore';
 
 export default function Profile({ user, setUser, setScreen }) {
   const levelClass = `level-pill level-${(user?.level || 'beginner').toLowerCase()}`;
@@ -12,7 +12,7 @@ export default function Profile({ user, setUser, setScreen }) {
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
-      localStorage.removeItem('sharktype_user');
+      clearUser();
       window.location.reload();
     }
   };
@@ -161,7 +161,7 @@ export default function Profile({ user, setUser, setScreen }) {
               Badges
             </div>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-              {user?.badges?.length || 0} / 12 earned
+              {user?.badges?.length || 0} / {ALL_BADGES.length} earned
             </span>
           </div>
           <BadgeGrid earnedBadges={user?.badges || []} />
