@@ -13,7 +13,7 @@ const SHARK_W = 94;
 const FISH_W = 54;
 const SHARK_H = 52;
 const FISH_H = 40;
-const FISH_START_X = 190;
+const FISH_START_X = 100;
 const SHARK_MAX_X = LANE_W - SHARK_W;
 const FISH_MAX_X = LANE_W - FISH_W;
 const OCEAN_H = 174;
@@ -90,6 +90,7 @@ export default function SharkChase({ user, setUser, setScreen }) {
   const [sharkX, setSharkX] = useState(0);
   const [resultStats, setResultStats] = useState(null);
   const [deathFlash, setDeathFlash] = useState(false);
+  const [chompOverlay, setChompOverlay] = useState(false);
   const [noDeath, setNoDeath] = useState(true);
 
   const rafRef = useRef(null);
@@ -102,6 +103,7 @@ export default function SharkChase({ user, setUser, setScreen }) {
   const inputRef = useRef(null);
   const noDeathRef = useRef(true);
   const endedRef = useRef(false);
+  const chompRef = useRef(false);
 
   const targetWpm = DIFFICULTIES[difficulty].targetWpm;
 
@@ -187,25 +189,38 @@ export default function SharkChase({ user, setUser, setScreen }) {
     }
 
     // Shark catches fish — shark nose overlaps fish tail
-    if (newSharkX + SHARK_W >= newFishX - 8) {
+    if (newSharkX + SHARK_W >= newFishX - 8 && !chompRef.current) {
       const newLives = livesRef.current - 1;
       livesRef.current = newLives;
       noDeathRef.current = false;
       setNoDeath(false);
       setLives(newLives);
+      chompRef.current = true;
       setDeathFlash(true);
-      setTimeout(() => setDeathFlash(false), 800);
+      setChompOverlay(true);
+      cancelAnimationFrame(rafRef.current);
 
       if (newLives <= 0) {
-        endRound(typedRef.current, 'caught');
+        setTimeout(() => endRound(typedRef.current, 'caught'), 950);
         return;
       }
 
-      fishXRef.current = FISH_START_X;
-      sharkXRef.current = 0;
-      setFishX(FISH_START_X);
-      setSharkX(0);
-      startTimeRef.current = Date.now();
+      // Reset passage attempt after CHOMP pause
+      setTimeout(() => {
+        typedRef.current = '';
+        setTyped('');
+        fishXRef.current = FISH_START_X;
+        sharkXRef.current = 0;
+        setFishX(FISH_START_X);
+        setSharkX(0);
+        startTimeRef.current = Date.now();
+        setDeathFlash(false);
+        setChompOverlay(false);
+        chompRef.current = false;
+        rafRef.current = requestAnimationFrame(animate);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }, 950);
+      return;
     }
 
     rafRef.current = requestAnimationFrame(animate);
@@ -226,6 +241,8 @@ export default function SharkChase({ user, setUser, setScreen }) {
     setNoDeath(true);
     noDeathRef.current = true;
     endedRef.current = false;
+    chompRef.current = false;
+    setChompOverlay(false);
     setStartTime(null);
     startTimeRef.current = null;
     setResultStats(null);
@@ -300,9 +317,23 @@ export default function SharkChase({ user, setUser, setScreen }) {
               </div>
             </div>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginBottom: 28 }}>
-            Type fast enough to stay ahead of the shark! You have 3 lives. Choose your difficulty:
-          </p>
+          <div style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 10,
+            padding: '14px 18px',
+            marginBottom: 24,
+            fontSize: 13,
+            color: 'rgba(255,255,255,0.55)',
+            lineHeight: 1.7,
+          }}>
+            <div style={{ fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>How to play:</div>
+            <div>🐟 Type the passage to move your fish forward</div>
+            <div>🦈 The shark chases at your chosen WPM target speed</div>
+            <div>💀 If the shark catches you → <span style={{ color: '#ff6b6b', fontWeight: 600 }}>CHOMP!</span> You lose a life and retype from scratch</div>
+            <div>❤️ You have <strong style={{ color: 'rgba(255,255,255,0.85)' }}>3 lives</strong> — finish the passage before losing them all to escape!</div>
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>Choose your difficulty:</div>
           <div style={{ display: 'flex', gap: 14, marginBottom: 32 }}>
             {DIFFICULTIES.map((d, i) => (
               <button
@@ -419,6 +450,31 @@ export default function SharkChase({ user, setUser, setScreen }) {
               }}>FINISH</div>
             </div>
 
+            {/* CHOMP overlay */}
+            {chompOverlay && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                pointerEvents: 'none',
+                background: 'rgba(80,0,0,0.35)',
+              }}>
+                <div style={{
+                  fontFamily: 'Orbitron, sans-serif',
+                  fontSize: 42,
+                  fontWeight: 900,
+                  color: '#ff4444',
+                  textShadow: '0 0 24px rgba(255,60,60,0.9), 0 0 60px rgba(255,0,0,0.4)',
+                  letterSpacing: '0.08em',
+                }}>
+                  CHOMP!
+                </div>
+              </div>
+            )}
+
             {/* Bubbles trailing the fish */}
             {startTime && [0, 1, 2].map(i => (
               <div key={i} style={{
@@ -529,7 +585,7 @@ export default function SharkChase({ user, setUser, setScreen }) {
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>
               {resultStats.reason === 'completed'
-                ? 'You outswam the shark! Great typing!'
+                ? 'You outswam the shark! Score saved to the leaderboard.'
                 : 'You lost all 3 lives. The shark wins this round.'}
             </p>
           </div>
