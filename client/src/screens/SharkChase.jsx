@@ -282,6 +282,24 @@ export default function SharkChase({ user, setUser, setScreen }) {
       {/* SELECT PHASE */}
       {phase === 'select' && (
         <div style={{ maxWidth: 560 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            background: 'rgba(255,209,102,0.07)',
+            border: '1px solid rgba(255,209,102,0.25)',
+            borderRadius: 10,
+            padding: '12px 16px',
+            marginBottom: 22,
+          }}>
+            <span style={{ fontSize: 20 }}>🏆</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#ffd166', marginBottom: 2 }}>Ranked Mode</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                Your best WPM score is saved to the global leaderboard after each run.
+              </div>
+            </div>
+          </div>
           <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginBottom: 28 }}>
             Type fast enough to stay ahead of the shark! You have 3 lives. Choose your difficulty:
           </p>

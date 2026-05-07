@@ -14,6 +14,7 @@ const MODES = [
     icon: '🦈',
     desc: 'Type fast or get eaten! Race against the shark across 3 lives.',
     color: '#1255a0',
+    ranked: true,
   },
   {
     id: 'chunk',
@@ -115,7 +116,26 @@ export default function Home({ user, setScreen }) {
               background: `radial-gradient(circle, ${mode.color}40 0%, transparent 70%)`,
               borderRadius: '0 14px 0 0',
             }} />
-            <div style={{ fontSize: 32 }}>{mode.icon}</div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 32 }}>{mode.icon}</div>
+              {mode.ranked && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: 'rgba(255,209,102,0.12)',
+                  border: '1px solid rgba(255,209,102,0.35)',
+                  borderRadius: 20,
+                  padding: '3px 10px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#ffd166',
+                  letterSpacing: '0.04em',
+                }}>
+                  🏆 RANKED
+                </div>
+              )}
+            </div>
             <div>
               <div style={{
                 fontFamily: 'Orbitron, sans-serif',
