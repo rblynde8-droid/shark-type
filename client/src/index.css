@@ -217,3 +217,43 @@ input {
   border-radius: 3px;
   transition: width 0.3s ease;
 }
+
+/* ── Shark Chase animations ── */
+
+.shark-tail {
+  animation: tailWag 0.38s ease-in-out infinite alternate;
+}
+.fish-tail {
+  animation: tailWag 0.26s ease-in-out infinite alternate;
+}
+.shark-swim {
+  animation: sharkBob 1.15s ease-in-out infinite;
+}
+.fish-swim {
+  animation: fishBob 0.82s ease-in-out infinite;
+}
+
+@keyframes tailWag {
+  from { transform: rotate(-22deg); }
+  to   { transform: rotate(22deg); }
+}
+
+@keyframes sharkBob {
+  0%, 100% { transform: translateY(0px)  rotate(0deg); }
+  50%       { transform: translateY(-8px) rotate(-2deg); }
+}
+
+@keyframes fishBob {
+  0%, 100% { transform: translateY(0px)  rotate(-3deg); }
+  50%       { transform: translateY(-7px) rotate(3deg); }
+}
+
+@keyframes chaseBubble {
+  0%   { transform: translateY(0px)   scale(0.8); opacity: 0.6; }
+  100% { transform: translateY(-55px) scale(1.4); opacity: 0; }
+}
+
+@keyframes lightRay {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}

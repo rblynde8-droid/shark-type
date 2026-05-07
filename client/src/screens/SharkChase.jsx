@@ -8,18 +8,85 @@ const DIFFICULTIES = [
   { label: 'Advanced', targetWpm: 55, color: '#ff6b6b' },
 ];
 
-const LANE_WIDTH = 700;
-const FISH_Y = 60;
-const SHARK_Y = 28;
+const LANE_W = 660;
+const SHARK_W = 94;
+const FISH_W = 54;
+const SHARK_H = 52;
+const FISH_H = 40;
+const FISH_START_X = 190;
+const SHARK_MAX_X = LANE_W - SHARK_W;
+const FISH_MAX_X = LANE_W - FISH_W;
+const OCEAN_H = 174;
+const OCEAN_CY = OCEAN_H / 2; // ~87
+
+function SharkSVG() {
+  return (
+    <svg width={SHARK_W} height={SHARK_H} viewBox="0 0 94 52" style={{ overflow: 'visible', display: 'block' }}>
+      {/* Tail — wags */}
+      <g className="shark-tail" style={{ transformOrigin: '14px 26px' }}>
+        <path d="M 14 26 L 0 9 L 9 26 L 0 44 L 14 30 Z" fill="#1b4a62"/>
+      </g>
+      {/* Body */}
+      <path d="M 12 26 C 22 15 46 11 66 17 C 80 21 90 27 88 33 C 86 38 73 44 53 44 C 34 44 18 38 12 30 Z" fill="#2b6a85"/>
+      {/* Belly */}
+      <path d="M 24 38 C 42 46 64 45 76 40 C 84 37 87 32 85 35 C 80 44 55 50 33 48 C 26 46 21 41 24 38 Z" fill="#b5dced"/>
+      {/* Dorsal fin */}
+      <path d="M 46 15 L 55 1 L 64 14 Z" fill="#1b4a62"/>
+      {/* Pectoral fin */}
+      <path d="M 38 39 L 25 52 L 56 44 Z" fill="#1b4a62"/>
+      {/* Head */}
+      <ellipse cx="83" cy="30" rx="12" ry="11" fill="#2b6a85"/>
+      {/* Lower jaw */}
+      <path d="M 75 36 Q 86 44 94 38 L 94 32 Q 86 38 75 32 Z" fill="#b5dced"/>
+      {/* Teeth */}
+      <polygon points="77,35 79.5,42 82,35" fill="white"/>
+      <polygon points="83,34 85.5,41 88,34" fill="white"/>
+      {/* Eye */}
+      <circle cx="78" cy="25" r="4.5" fill="#07111e"/>
+      <circle cx="79.5" cy="23.5" r="1.8" fill="rgba(255,255,255,0.85)"/>
+      {/* Pupil glint */}
+      <circle cx="80.5" cy="22.5" r="0.8" fill="rgba(255,255,255,0.5)"/>
+      {/* Gill slits */}
+      <path d="M 64 20 Q 62 27 64 36" stroke="#1b4a62" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <path d="M 68 19 Q 66 27 68 37" stroke="#1b4a62" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function FishSVG() {
+  return (
+    <svg width={FISH_W} height={FISH_H} viewBox="0 0 54 40" style={{ overflow: 'visible', display: 'block' }}>
+      {/* Tail — wags */}
+      <g className="fish-tail" style={{ transformOrigin: '11px 20px' }}>
+        <path d="M 11 20 L 0 7 L 6 20 L 0 33 L 11 22 Z" fill="#cc5800"/>
+      </g>
+      {/* Body */}
+      <ellipse cx="33" cy="20" rx="23" ry="14" fill="#ff9c1a"/>
+      {/* Belly */}
+      <ellipse cx="34" cy="26" rx="16" ry="7.5" fill="#ffd06a"/>
+      {/* Dorsal fin */}
+      <path d="M 26 7 L 33 0 L 40 6 Z" fill="#cc5800"/>
+      {/* Eye */}
+      <circle cx="47" cy="17" r="5" fill="#07111e"/>
+      <circle cx="48.5" cy="15.5" r="2" fill="rgba(255,255,255,0.9)"/>
+      <circle cx="49.5" cy="14.5" r="0.8" fill="rgba(255,255,255,0.6)"/>
+      {/* Mouth */}
+      <ellipse cx="53" cy="22" rx="1.5" ry="2" fill="#aa4400"/>
+      {/* Scale hints */}
+      <path d="M 25 14 Q 29 18 25 23" stroke="#cc5800" strokeWidth="1" fill="none" opacity="0.5"/>
+      <path d="M 31 12 Q 35 16 31 21" stroke="#cc5800" strokeWidth="1" fill="none" opacity="0.5"/>
+    </svg>
+  );
+}
 
 export default function SharkChase({ user, setUser, setScreen }) {
-  const [phase, setPhase] = useState('select'); // select | playing | result
+  const [phase, setPhase] = useState('select');
   const [difficulty, setDifficulty] = useState(1);
   const [passage, setPassage] = useState('');
   const [typed, setTyped] = useState('');
   const [lives, setLives] = useState(3);
   const [startTime, setStartTime] = useState(null);
-  const [fishX, setFishX] = useState(140);
+  const [fishX, setFishX] = useState(FISH_START_X);
   const [sharkX, setSharkX] = useState(0);
   const [resultStats, setResultStats] = useState(null);
   const [deathFlash, setDeathFlash] = useState(false);
@@ -30,15 +97,16 @@ export default function SharkChase({ user, setUser, setScreen }) {
   const startTimeRef = useRef(null);
   const typedRef = useRef('');
   const passageRef = useRef('');
-  const fishXRef = useRef(140);
+  const fishXRef = useRef(FISH_START_X);
   const sharkXRef = useRef(0);
   const inputRef = useRef(null);
   const noDeathRef = useRef(true);
+  const endedRef = useRef(false);
 
   const targetWpm = DIFFICULTIES[difficulty].targetWpm;
 
   const calcStats = (typedStr, elapsed) => {
-    const elapsedMin = elapsed / 60000;
+    const elapsedMin = Math.max(elapsed, 100) / 60000;
     let correct = 0, errors = 0;
     const pass = passageRef.current;
     for (let i = 0; i < typedStr.length; i++) {
@@ -47,24 +115,20 @@ export default function SharkChase({ user, setUser, setScreen }) {
         else errors++;
       }
     }
-    const wpm = elapsedMin > 0 ? Math.round((correct / 5) / elapsedMin) : 0;
+    const wpm = Math.round((correct / 5) / elapsedMin);
     const accuracy = typedStr.length > 0 ? Math.round((correct / typedStr.length) * 100) : 100;
     return { wpm, accuracy, correct };
   };
 
   const endRound = useCallback((finalTyped, reason) => {
+    if (endedRef.current) return;
+    endedRef.current = true;
     cancelAnimationFrame(rafRef.current);
     const elapsed = startTimeRef.current ? Date.now() - startTimeRef.current : 1000;
     const stats = calcStats(finalTyped, elapsed);
-    setResultStats({
-      ...stats,
-      lives: livesRef.current,
-      reason,
-      noDeath: noDeathRef.current,
-    });
+    setResultStats({ ...stats, lives: livesRef.current, reason, noDeath: noDeathRef.current });
     setPhase('result');
 
-    // Update user
     let updated = { ...user };
     updated.sessionsPlayed = (updated.sessionsPlayed || 0) + 1;
     updated.chaseSessions = (updated.chaseSessions || 0) + 1;
@@ -76,7 +140,6 @@ export default function SharkChase({ user, setUser, setScreen }) {
     }
     updated = checkAndAwardBadges(updated);
 
-    // Post to leaderboard
     fetch('/api/score', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,13 +160,10 @@ export default function SharkChase({ user, setUser, setScreen }) {
     const elapsed = startTimeRef.current ? now - startTimeRef.current : 0;
     const elapsedSec = elapsed / 1000;
 
-    // Shark speed: chars per second based on targetWpm
-    // targetWpm * 5 = chars/min => chars/sec
     const charsPerSec = (targetWpm * 5) / 60;
     const totalChars = passageRef.current.length;
     const sharkProgress = totalChars > 0 ? Math.min((charsPerSec * elapsedSec) / totalChars, 1) : 0;
 
-    // Fish progress = typed correct chars / total
     let correctChars = 0;
     const pass = passageRef.current;
     const t = typedRef.current;
@@ -112,20 +172,22 @@ export default function SharkChase({ user, setUser, setScreen }) {
     }
     const fishProgress = totalChars > 0 ? Math.min(correctChars / totalChars, 1) : 0;
 
-    // Fish starts at 140px (head start), shark starts at 0
-    const fishMinX = 140;
-    const sharkMinX = 0;
-    const maxX = LANE_WIDTH - 60;
-    const newFishX = fishMinX + fishProgress * (maxX - fishMinX);
-    const newSharkX = sharkMinX + sharkProgress * (maxX - sharkMinX);
+    const newFishX = FISH_START_X + fishProgress * (FISH_MAX_X - FISH_START_X);
+    const newSharkX = sharkProgress * SHARK_MAX_X;
 
     fishXRef.current = newFishX;
     sharkXRef.current = newSharkX;
     setFishX(newFishX);
     setSharkX(newSharkX);
 
-    // Check catch — shark must fully close the gap (within 24px)
-    if (newSharkX >= newFishX - 24) {
+    // Completion check first — fish reaches right edge
+    if (fishProgress >= 1) {
+      endRound(typedRef.current, 'completed');
+      return;
+    }
+
+    // Shark catches fish — shark nose overlaps fish tail
+    if (newSharkX + SHARK_W >= newFishX - 8) {
       const newLives = livesRef.current - 1;
       livesRef.current = newLives;
       noDeathRef.current = false;
@@ -139,18 +201,11 @@ export default function SharkChase({ user, setUser, setScreen }) {
         return;
       }
 
-      // Reset positions — fish gets head start again, shark resets
-      fishXRef.current = 140;
+      fishXRef.current = FISH_START_X;
       sharkXRef.current = 0;
-      setFishX(140);
+      setFishX(FISH_START_X);
       setSharkX(0);
       startTimeRef.current = Date.now();
-    }
-
-    // Check completion
-    if (fishProgress >= 1) {
-      endRound(typedRef.current, 'completed');
-      return;
     }
 
     rafRef.current = requestAnimationFrame(animate);
@@ -164,12 +219,13 @@ export default function SharkChase({ user, setUser, setScreen }) {
     typedRef.current = '';
     setLives(3);
     livesRef.current = 3;
-    setFishX(140);
+    setFishX(FISH_START_X);
     setSharkX(0);
-    fishXRef.current = 140;
+    fishXRef.current = FISH_START_X;
     sharkXRef.current = 0;
     setNoDeath(true);
     noDeathRef.current = true;
+    endedRef.current = false;
     setStartTime(null);
     startTimeRef.current = null;
     setResultStats(null);
@@ -179,7 +235,7 @@ export default function SharkChase({ user, setUser, setScreen }) {
 
   const handleTyping = (e) => {
     const val = e.target.value;
-    if (val.length > passage.length) return;
+    if (val.length > passageRef.current.length) return;
 
     if (!startTimeRef.current && val.length > 0) {
       startTimeRef.current = Date.now();
@@ -189,23 +245,28 @@ export default function SharkChase({ user, setUser, setScreen }) {
 
     typedRef.current = val;
     setTyped(val);
+
+    // End immediately when the full passage is typed
+    if (val.length >= passageRef.current.length) {
+      cancelAnimationFrame(rafRef.current);
+      endRound(val, 'completed');
+    }
   };
 
   useEffect(() => {
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  const renderPassage = () => {
-    return passage.split('').map((char, i) => {
+  const renderPassage = () =>
+    passage.split('').map((char, i) => {
       let cls = 'char-pending';
-      if (i < typed.length) {
-        cls = typed[i] === char ? 'char-correct' : 'char-wrong';
-      } else if (i === typed.length) {
-        cls = 'char-current';
-      }
+      if (i < typed.length) cls = typed[i] === char ? 'char-correct' : 'char-wrong';
+      else if (i === typed.length) cls = 'char-current';
       return <span key={i} className={cls}>{char}</span>;
     });
-  };
+
+  // how close is the shark? 0 = far, 1 = right behind
+  const dangerLevel = Math.max(0, Math.min(1, (sharkX + SHARK_W - (fishX - 80)) / 80));
 
   return (
     <div style={{ padding: '40px 32px', position: 'relative', zIndex: 1 }}>
@@ -224,7 +285,6 @@ export default function SharkChase({ user, setUser, setScreen }) {
           <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginBottom: 28 }}>
             Type fast enough to stay ahead of the shark! You have 3 lives. Choose your difficulty:
           </p>
-
           <div style={{ display: 'flex', gap: 14, marginBottom: 32 }}>
             {DIFFICULTIES.map((d, i) => (
               <button
@@ -250,7 +310,6 @@ export default function SharkChase({ user, setUser, setScreen }) {
               </button>
             ))}
           </div>
-
           <button className="btn btn-primary" onClick={startGame} style={{ width: '100%', padding: 14, fontSize: 15 }}>
             🦈 Start Chase!
           </button>
@@ -259,12 +318,12 @@ export default function SharkChase({ user, setUser, setScreen }) {
 
       {/* PLAYING PHASE */}
       {phase === 'playing' && (
-        <div style={{ maxWidth: 760 }}>
-          {/* Lives */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ maxWidth: 720 }}>
+          {/* Lives + target */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              {[0,1,2].map(i => (
-                <span key={i} style={{ fontSize: 24, filter: i < lives ? 'none' : 'grayscale(1) opacity(0.3)' }}>
+              {[0, 1, 2].map(i => (
+                <span key={i} style={{ fontSize: 22, filter: i < lives ? 'none' : 'grayscale(1) opacity(0.3)' }}>
                   ❤️
                 </span>
               ))}
@@ -276,64 +335,125 @@ export default function SharkChase({ user, setUser, setScreen }) {
 
           {/* Ocean scene */}
           <div style={{
-            background: deathFlash
-              ? 'rgba(255,107,107,0.15)'
-              : 'linear-gradient(180deg, #062338 0%, #0a3a5c 40%, #0d4a73 100%)',
-            border: `2px solid ${deathFlash ? '#ff6b6b' : 'rgba(0,180,216,0.3)'}`,
-            borderRadius: 14,
-            padding: '20px 24px',
-            marginBottom: 20,
             position: 'relative',
             overflow: 'hidden',
-            transition: 'all 0.1s',
-            height: 120,
+            borderRadius: 16,
+            height: OCEAN_H,
+            marginBottom: 18,
+            border: `2px solid ${deathFlash ? 'rgba(255,80,80,0.7)' : 'rgba(0,150,200,0.25)'}`,
+            background: deathFlash
+              ? 'linear-gradient(180deg, #1a0308 0%, #2e0610 50%, #1a0308 100%)'
+              : 'linear-gradient(180deg, #03111f 0%, #051e38 25%, #072c52 60%, #09356a 100%)',
+            transition: 'background 0.15s, border-color 0.15s',
           }}>
-            {/* Wave decoration */}
+            {/* Animated light rays */}
+            {[0.08, 0.25, 0.46, 0.66, 0.84].map((pos, i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                top: 0,
+                left: `${pos * 100}%`,
+                width: 55 + i * 18,
+                height: '100%',
+                background: 'linear-gradient(180deg, rgba(80,190,255,0.07) 0%, transparent 75%)',
+                transform: `skewX(${-18 + i * 8}deg)`,
+                animation: `lightRay ${2.2 + i * 0.6}s ease-in-out ${i * 0.5}s infinite`,
+                pointerEvents: 'none',
+              }}/>
+            ))}
+
+            {/* Ocean floor */}
             <div style={{
               position: 'absolute',
               bottom: 0,
               left: 0,
               right: 0,
-              height: 24,
-              background: 'rgba(0,100,160,0.3)',
-              borderRadius: '0 0 12px 12px',
-            }} />
+              height: 16,
+              background: 'linear-gradient(0deg, rgba(10,40,20,0.5) 0%, transparent 100%)',
+            }}/>
 
-            {/* Progress track */}
+            {/* Surface shimmer */}
             <div style={{
               position: 'absolute',
-              top: '50%',
-              left: 20,
-              right: 20,
-              height: 2,
-              background: 'rgba(255,255,255,0.1)',
-              transform: 'translateY(-50%)',
-            }} />
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 10,
+              background: 'linear-gradient(180deg, rgba(120,220,255,0.07) 0%, transparent 100%)',
+            }}/>
+
+            {/* Finish line */}
+            <div style={{
+              position: 'absolute',
+              right: 22,
+              top: 14,
+              bottom: 14,
+              width: 2,
+              borderRight: '2px dashed rgba(82,214,138,0.35)',
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: -16,
+                right: 4,
+                fontSize: 10,
+                color: 'rgba(82,214,138,0.5)',
+                whiteSpace: 'nowrap',
+                fontFamily: 'Space Mono, monospace',
+              }}>FINISH</div>
+            </div>
+
+            {/* Bubbles trailing the fish */}
+            {startTime && [0, 1, 2].map(i => (
+              <div key={i} style={{
+                position: 'absolute',
+                left: fishX - 14 - i * 11,
+                top: OCEAN_CY - FISH_H / 2 + 10 + i * 9,
+                width: 6 - i * 1.5,
+                height: 6 - i * 1.5,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                animation: `chaseBubble ${1 + i * 0.35}s ease-out ${i * 0.22}s infinite`,
+                pointerEvents: 'none',
+              }}/>
+            ))}
+
+            {/* Shark danger glow (gets brighter as it closes in) */}
+            {dangerLevel > 0.3 && (
+              <div style={{
+                position: 'absolute',
+                left: sharkX - 10,
+                top: OCEAN_CY - SHARK_H / 2 - 10,
+                width: SHARK_W + 20,
+                height: SHARK_H + 20,
+                borderRadius: '50%',
+                background: `radial-gradient(ellipse, rgba(255,60,60,${dangerLevel * 0.18}) 0%, transparent 70%)`,
+                pointerEvents: 'none',
+                transition: 'opacity 0.1s',
+              }}/>
+            )}
 
             {/* Fish */}
             <div style={{
               position: 'absolute',
               left: fishX,
-              top: FISH_Y,
-              fontSize: 28,
-              transform: 'translateY(-50%)',
+              top: OCEAN_CY - FISH_H / 2,
               transition: 'left 0.1s linear',
-              filter: 'drop-shadow(0 0 6px rgba(82,214,138,0.8))',
             }}>
-              🐟
+              <div className="fish-swim" style={{ filter: 'drop-shadow(0 2px 10px rgba(255,156,26,0.65))' }}>
+                <FishSVG />
+              </div>
             </div>
 
             {/* Shark */}
             <div style={{
               position: 'absolute',
               left: sharkX,
-              top: SHARK_Y,
-              fontSize: 32,
-              transform: 'translateY(-50%)',
+              top: OCEAN_CY - SHARK_H / 2 + 4,
               transition: 'left 0.15s linear',
-              filter: 'drop-shadow(0 0 8px rgba(255,107,107,0.8))',
             }}>
-              🦈
+              <div className="shark-swim" style={{ filter: `drop-shadow(0 3px 14px rgba(255,80,80,${0.4 + dangerLevel * 0.4}))` }}>
+                <SharkSVG />
+              </div>
             </div>
           </div>
 
@@ -392,7 +512,7 @@ export default function SharkChase({ user, setUser, setScreen }) {
             <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>
               {resultStats.reason === 'completed'
                 ? 'You outswam the shark! Great typing!'
-                : `You lost all 3 lives. The shark wins this round.`}
+                : 'You lost all 3 lives. The shark wins this round.'}
             </p>
           </div>
 
