@@ -591,6 +591,7 @@ export default function SharkChase({ user, setUser, setScreen }) {
             ref={inputRef}
             value={typed}
             onChange={handleTyping}
+            onPaste={(e) => e.preventDefault()}
             style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 1, height: 1 }}
             autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
           />

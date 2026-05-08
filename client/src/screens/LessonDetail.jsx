@@ -104,6 +104,9 @@ export default function LessonDetail({ lesson, user, setUser, onBack }) {
     if (phase === 'checkpoint' && cpInputRef.current) cpInputRef.current.focus();
   }, [phase]);
 
+  // Always clear the interval when this component is removed from the DOM
+  useEffect(() => () => clearInterval(timerRef.current), []);
+
   useEffect(() => {
     if (cpRunning && cpStartTime) {
       timerRef.current = setInterval(() => {

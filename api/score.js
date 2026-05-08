@@ -15,13 +15,16 @@ module.exports = async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   try {
-    const existing = await sql`SELECT wpm FROM scores WHERE username = ${username}`;
+    const existing = await sql`SELECT wpm, accuracy FROM scores WHERE username = ${username}`;
 
     if (existing.length > 0) {
-      if (wpm > existing[0].wpm) {
+      const bestWpm = Math.max(wpm, existing[0].wpm);
+      const bestAcc = Math.max(accuracy, existing[0].accuracy);
+      const improved = bestWpm !== existing[0].wpm || bestAcc !== existing[0].accuracy;
+      if (improved) {
         await sql`
           UPDATE scores
-          SET wpm = ${wpm}, accuracy = ${accuracy}, level = ${level}, updated_at = NOW()
+          SET wpm = ${bestWpm}, accuracy = ${bestAcc}, level = ${level}, updated_at = NOW()
           WHERE username = ${username}
         `;
         return res.status(200).json({ updated: true, improved: true });
