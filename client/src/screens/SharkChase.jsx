@@ -13,7 +13,7 @@ const SHARK_W = 94;
 const FISH_W = 54;
 const SHARK_H = 52;
 const FISH_H = 40;
-const FISH_START_X = 100;
+const FISH_START_X = 190;
 const SHARK_MAX_X = LANE_W - SHARK_W;
 const FISH_MAX_X = LANE_W - FISH_W;
 const OCEAN_H = 174;
@@ -91,6 +91,7 @@ export default function SharkChase({ user, setUser, setScreen }) {
   const [resultStats, setResultStats] = useState(null);
   const [deathFlash, setDeathFlash] = useState(false);
   const [chompOverlay, setChompOverlay] = useState(false);
+  const [chompBiteX, setChompBiteX] = useState(0);
   const [noDeath, setNoDeath] = useState(true);
 
   const rafRef = useRef(null);
@@ -196,6 +197,7 @@ export default function SharkChase({ user, setUser, setScreen }) {
       setNoDeath(false);
       setLives(newLives);
       chompRef.current = true;
+      setChompBiteX(newFishX);
       setDeathFlash(true);
       setChompOverlay(true);
       cancelAnimationFrame(rafRef.current);
@@ -506,24 +508,57 @@ export default function SharkChase({ user, setUser, setScreen }) {
               }}/>
             )}
 
-            {/* Fish */}
+            {/* Fish — disappears on chomp */}
             <div style={{
               position: 'absolute',
               left: fishX,
               top: OCEAN_CY - FISH_H / 2,
-              transition: 'left 0.1s linear',
+              transition: 'left 0.1s linear, opacity 0.06s',
+              opacity: chompOverlay ? 0 : 1,
             }}>
               <div className="fish-swim" style={{ filter: 'drop-shadow(0 2px 10px rgba(255,156,26,0.65))' }}>
                 <FishSVG />
               </div>
             </div>
 
-            {/* Shark */}
+            {/* Splatter particles at bite point */}
+            {chompOverlay && [
+              [18, -22], [34, -8], [38, 14], [24, 28], [4, 32], [-18, 18], [-28, -2], [-16, -22],
+            ].map(([tx, ty], i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                left: chompBiteX + tx,
+                top: OCEAN_CY - FISH_H / 2 + ty,
+                width: 8 - (i % 3),
+                height: 8 - (i % 3),
+                borderRadius: '50%',
+                background: i % 2 === 0 ? '#ff9c1a' : '#ffd06a',
+                animation: `chompSplat 0.65s ease-out ${i * 0.03}s forwards`,
+                pointerEvents: 'none',
+              }}/>
+            ))}
+
+            {/* Bite ring blast */}
+            {chompOverlay && (
+              <div style={{
+                position: 'absolute',
+                left: chompBiteX - 4,
+                top: OCEAN_CY - FISH_H / 2 + 2,
+                width: FISH_W,
+                height: FISH_H,
+                borderRadius: '50%',
+                border: '3px solid rgba(255,156,26,0.8)',
+                animation: 'chompBlast 0.55s ease-out forwards',
+                pointerEvents: 'none',
+              }}/>
+            )}
+
+            {/* Shark — lunges to bite position during chomp */}
             <div style={{
               position: 'absolute',
-              left: sharkX,
+              left: chompOverlay ? chompBiteX - SHARK_W + 10 : sharkX,
               top: OCEAN_CY - SHARK_H / 2 + 4,
-              transition: 'left 0.15s linear',
+              transition: chompOverlay ? 'left 0.12s ease-out' : 'left 0.15s linear',
             }}>
               <div className="shark-swim" style={{ filter: `drop-shadow(0 3px 14px rgba(255,80,80,${0.4 + dangerLevel * 0.4}))` }}>
                 <SharkSVG />
